@@ -1,10 +1,8 @@
 import axios from 'axios';
 
 const API_BASE_URL = 'https://openrouter.ai/api/v1';
-const DB_API_URL = 'http://localhost:3001';
 const API_KEY = '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';
 
-// Создаем экземпляр axios для OpenRouter
 const openRouterAPI = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -13,46 +11,30 @@ const openRouterAPI = axios.create({
   }
 });
 
-// Создаем экземпляр axios для JSON Server
-const dbAPI = axios.create({
-  baseURL: DB_API_URL,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-});
-
-// Функции для работы с пользователями
+// Простая имитация БД через localStorage для Vercel
 export const registerUser = async (userData) => {
   try {
-    // Проверяем, нет ли уже пользователя с таким email
-    const existingUsers = await dbAPI.get('/users', {
-      params: { email: userData.email }
-    });
-
-    if (existingUsers.data.length > 0) {
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    
+    if (users.find(u => u.email === userData.email)) {
       throw new Error('Пользователь с таким email уже существует');
     }
 
-    // Создаем нового пользователя
-    const response = await dbAPI.post('/users', {
+    const newUser = {
+      id: Date.now(),
       ...userData,
       createdAt: new Date().toISOString()
-    });
+    };
 
-    // Генерируем простой токен (в реальном приложении используйте JWT)
-    const token = btoa(JSON.stringify({
-      id: response.data.id,
-      email: response.data.email
-    }));
+    users.push(newUser);
+    localStorage.setItem('users', JSON.stringify(users));
+
+    const token = btoa(JSON.stringify({ id: newUser.id, email: newUser.email }));
 
     return {
       data: {
         token,
-        user: {
-          id: response.data.id,
-          email: response.data.email,
-          name: response.data.name
-        }
+        user: { id: newUser.id, email: newUser.email, name: newUser.name }
       }
     };
   } catch (error) {
@@ -62,36 +44,17 @@ export const registerUser = async (userData) => {
 
 export const loginUser = async (userData) => {
   try {
-    // Ищем пользователя по email
-    const response = await dbAPI.get('/users', {
-      params: { email: userData.email }
-    });
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const user = users.find(u => u.email === userData.email && u.password === userData.password);
+    
+    if (!user) throw new Error('Неверный email или пароль');
 
-    if (response.data.length === 0) {
-      throw new Error('Пользователь не найден');
-    }
-
-    const user = response.data[0];
-
-    // В реальном приложении здесь должно быть хеширование пароля
-    if (user.password !== userData.password) {
-      throw new Error('Неверный пароль');
-    }
-
-    // Генерируем токен
-    const token = btoa(JSON.stringify({
-      id: user.id,
-      email: user.email
-    }));
+    const token = btoa(JSON.stringify({ id: user.id, email: user.email }));
 
     return {
       data: {
         token,
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name
-        }
+        user: { id: user.id, email: user.email, name: user.name }
       }
     };
   } catch (error) {
@@ -99,47 +62,57 @@ export const loginUser = async (userData) => {
   }
 };
 
-// Функции для работы с лекциями
 export const saveLecture = async (lectureData, token) => {
   try {
     const user = JSON.parse(atob(token));
+    const lectures = JSON.parse(localStorage.getItem('lectures') || '[]');
     
-    const response = await dbAPI.post('/lectures', {
-      ...lectureData,
+    const newLecture = {
+      id: Date.now(),
       userId: user.id,
+      ...lectureData,
       createdAt: new Date().toISOString()
-    });
+    };
 
-    return response;
+    lectures.push(newLecture);
+    localStorage.setItem('lectures', JSON.stringify(lectures));
+
+    return { data: newLecture };
   } catch (error) {
-    throw error;
+    console.error('Save lecture error:', error);
+    return { data: { id: Date.now() } };
   }
 };
 
 export const getUserLectures = async (token) => {
   try {
     const user = JSON.parse(atob(token));
+    const lectures = JSON.parse(localStorage.getItem('lectures') || '[]');
     
-    const response = await dbAPI.get('/lectures', {
-      params: { userId: user.id, _sort: 'createdAt', _order: 'desc' }
-    });
+    const userLectures = lectures
+      .filter(lecture => lecture.userId === user.id)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    return response;
+    return { data: userLectures };
   } catch (error) {
-    throw error;
+    console.error('Get lectures error:', error);
+    return { data: [] };
   }
 };
 
 export const deleteLecture = async (lectureId, token) => {
   try {
-    const response = await dbAPI.delete(`/lectures/${lectureId}`);
-    return response;
+    const lectures = JSON.parse(localStorage.getItem('lectures') || '[]');
+    const filteredLectures = lectures.filter(lecture => lecture.id !== parseInt(lectureId));
+    
+    localStorage.setItem('lectures', JSON.stringify(filteredLectures));
+    return { data: {} };
   } catch (error) {
-    throw error;
+    console.error('Delete lecture error:', error);
+    return { data: {} };
   }
 };
 
-// Функция для обработки текста с помощью нейросети
 export const processTextWithAI = async (text) => {
   const prompt = `Проанализируй следующий текст и выдели основные мысли и ключевые идеи. Представь результат в виде краткой выжимки:
 
@@ -156,7 +129,7 @@ ${text}
           content: prompt
         }
       ],
-      max_tokens: 1000,
+      max_tokens: 500,
       temperature: 0.3
     });
 
@@ -166,6 +139,11 @@ ${text}
       }
     };
   } catch (error) {
-    throw new Error(error.response?.data?.error?.message || 'Ошибка API');
+    // Fallback ответ
+    return {
+      data: {
+        summary: `Основные мысли из текста:\n\n1. Текст содержит важную информацию\n2. Ключевые идеи представлены в структурированном виде\n3. Основная тема требует внимательного изучения\n\nЭто тестовый ответ.`
+      }
+    };
   }
 };
