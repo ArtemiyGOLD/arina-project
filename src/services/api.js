@@ -1,8 +1,14 @@
+import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
 
+// Supabase клиент
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// OpenRouter API
 const API_BASE_URL = 'https://openrouter.ai/api/v1';
 const API_KEY = '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';
-
 const openRouterAPI = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -11,30 +17,38 @@ const openRouterAPI = axios.create({
   }
 });
 
-// Простая имитация БД через localStorage для Vercel
+// Регистрация
 export const registerUser = async (userData) => {
   try {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    if (users.find(u => u.email === userData.email)) {
+    // Проверяем есть ли пользователь
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', userData.email)
+      .single();
+
+    if (existingUser) {
       throw new Error('Пользователь с таким email уже существует');
     }
 
-    const newUser = {
-      id: Date.now(),
-      ...userData,
-      createdAt: new Date().toISOString()
-    };
+    // Создаем пользователя
+    const { data, error } = await supabase
+      .from('users')
+      .insert([{
+        email: userData.email,
+        password: userData.password,
+        name: userData.name,
+      }])
+      .select();
 
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
+    if (error) throw error;
 
-    const token = btoa(JSON.stringify({ id: newUser.id, email: newUser.email }));
+    const token = btoa(JSON.stringify({ id: data[0].id, email: data[0].email }));
 
     return {
       data: {
         token,
-        user: { id: newUser.id, email: newUser.email, name: newUser.name }
+        user: { id: data[0].id, email: data[0].email, name: data[0].name }
       }
     };
   } catch (error) {
@@ -42,19 +56,24 @@ export const registerUser = async (userData) => {
   }
 };
 
+// Вход
 export const loginUser = async (userData) => {
   try {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find(u => u.email === userData.email && u.password === userData.password);
-    
-    if (!user) throw new Error('Неверный email или пароль');
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', userData.email)
+      .single();
 
-    const token = btoa(JSON.stringify({ id: user.id, email: user.email }));
+    if (error) throw new Error('Пользователь не найден');
+    if (data.password !== userData.password) throw new Error('Неверный пароль');
+
+    const token = btoa(JSON.stringify({ id: data.id, email: data.email }));
 
     return {
       data: {
         token,
-        user: { id: user.id, email: user.email, name: user.name }
+        user: { id: data.id, email: data.email, name: data.name }
       }
     };
   } catch (error) {
@@ -62,57 +81,87 @@ export const loginUser = async (userData) => {
   }
 };
 
+// Сохранение лекции
 export const saveLecture = async (lectureData, token) => {
   try {
     const user = JSON.parse(atob(token));
-    const lectures = JSON.parse(localStorage.getItem('lectures') || '[]');
     
-    const newLecture = {
-      id: Date.now(),
-      userId: user.id,
-      ...lectureData,
-      createdAt: new Date().toISOString()
+    const { data, error } = await supabase
+      .from('lectures')
+      .insert([{
+        user_id: user.id,
+        title: lectureData.title,
+        original_text: lectureData.originalText,
+        summary: lectureData.summary,
+      }])
+      .select();
+
+    if (error) throw error;
+    
+    // Форматируем ответ
+    const formattedData = {
+      id: data[0].id,
+      userId: data[0].user_id,
+      title: data[0].title,
+      originalText: data[0].original_text,
+      summary: data[0].summary,
+      createdAt: data[0].created_at
     };
 
-    lectures.push(newLecture);
-    localStorage.setItem('lectures', JSON.stringify(lectures));
-
-    return { data: newLecture };
+    return { data: formattedData };
   } catch (error) {
     console.error('Save lecture error:', error);
-    return { data: { id: Date.now() } };
+    throw error;
   }
 };
 
+// Получение лекций
 export const getUserLectures = async (token) => {
   try {
     const user = JSON.parse(atob(token));
-    const lectures = JSON.parse(localStorage.getItem('lectures') || '[]');
     
-    const userLectures = lectures
-      .filter(lecture => lecture.userId === user.id)
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const { data, error } = await supabase
+      .from('lectures')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
 
-    return { data: userLectures };
+    if (error) throw error;
+
+    // Форматируем данные
+    const formattedData = data.map(lecture => ({
+      id: lecture.id,
+      userId: lecture.user_id,
+      title: lecture.title,
+      originalText: lecture.original_text,
+      summary: lecture.summary,
+      createdAt: lecture.created_at
+    }));
+
+    return { data: formattedData };
   } catch (error) {
     console.error('Get lectures error:', error);
-    return { data: [] };
+    throw error;
   }
 };
 
+// Удаление лекции
 export const deleteLecture = async (lectureId, token) => {
   try {
-    const lectures = JSON.parse(localStorage.getItem('lectures') || '[]');
-    const filteredLectures = lectures.filter(lecture => lecture.id !== parseInt(lectureId));
-    
-    localStorage.setItem('lectures', JSON.stringify(filteredLectures));
+    const { error } = await supabase
+      .from('lectures')
+      .delete()
+      .eq('id', lectureId);
+
+    if (error) throw error;
     return { data: {} };
   } catch (error) {
     console.error('Delete lecture error:', error);
-    return { data: {} };
+    throw error;
   }
 };
 
+// Анализ текста AI
 export const processTextWithAI = async (text) => {
   const prompt = `Проанализируй следующий текст и выдели основные мысли и ключевые идеи. Представь результат в виде краткой выжимки:
 
@@ -139,11 +188,7 @@ ${text}
       }
     };
   } catch (error) {
-    // Fallback ответ
-    return {
-      data: {
-        summary: `Основные мысли из текста:\n\n1. Текст содержит важную информацию\n2. Ключевые идеи представлены в структурированном виде\n3. Основная тема требует внимательного изучения\n\nЭто тестовый ответ.`
-      }
-    };
+    console.error('AI API error:', error);
+    throw new Error('Ошибка при анализе текста');
   }
 };
