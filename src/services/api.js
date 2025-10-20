@@ -1,10 +1,13 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js'
 import axios from 'axios';
 
 // Supabase клиент
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://jcgrzqksghxzpfvpceby.supabase.co';
-const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjZ3J6cWtzZ2h4enBmdnBjZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5NjIyNTksImV4cCI6MjA3NjUzODI1OX0.UwORyovNKX2wONxnz3zKXJC4AK2I4Xd-GyxuBCTNYA4';
-const supabase = createClient(supabaseUrl, supabaseKey);
+// ⚠️ ИСПОЛЬЗУЙ ТВОИ ДАННЫЕ ИЗ SUPABASE!
+const supabaseUrl = 'https://jcgrzqksghxzpfvpceby.supabase.co'
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjZ3J6cWtzZ2h4enBmdnBjZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5NjIyNTksImV4cCI6MjA3NjUzODI1OX0.UwORyovNKX2wONxnz3zKXJC4AK2I4Xd-GyxuBCTNYA4'
+
+// Create a single supabase client for interacting with your database
+const supabase = createClient(supabaseUrl, supabaseKey)
 
 // OpenRouter API
 const API_KEY = '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';
