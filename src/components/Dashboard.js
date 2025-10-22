@@ -20,7 +20,7 @@ const Dashboard = ({ user, onLogout }) => {
       <header className="dashboard-header">
         <div className="header-content">
           <div className="header-left">
-            <h1>🤖 AI Text Analyzer</h1>
+            <h1>🤖 Lector App</h1>
             <span className="user-greeting">
               👋 Добро пожаловать, {user?.name || user?.email}!
             </span>
