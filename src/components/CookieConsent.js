@@ -27,7 +27,6 @@ const CookieConsent = ({ userId }) => {
 
         setShowBanner(false);
 
-        // Сохраняем сессию если пользователь авторизован
         if (userId) {
             await cookieService.saveSession(userId);
         }
