@@ -38,7 +38,7 @@ const Dashboard = ({ user, onLogout }) => {
     <div className="dashboard">
       <header className="dashboard-header">
         <div className="header-content">
-          <h1>🚀 AI Project Manager</h1>
+          <h1>🚀 Lector-App</h1>
           <div className="user-info">
             <span>👋 {user.name}</span>
             <button onClick={onLogout} className="logout-btn">Выйти</button>
