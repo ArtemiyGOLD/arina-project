@@ -286,10 +286,8 @@ export const getUserProjects = async (token) => {
   }
 };
 
-// Генерация текста по промту
-// Генерация текста по промту
 export const generateTextFromPrompt = async (prompt) => {
-  const fullPrompt = `Сгенерируй качественный текст на основе следующего промта: "${prompt}". 
+  const fullPrompt = `Составь краткую лекцию по данному запросу: "${prompt}". 
   Текст должен быть структурированным, информативным и хорошо читаемым. А также без оформления по типу заголовков и тд.`;
 
   try {
@@ -316,5 +314,27 @@ export const generateTextFromPrompt = async (prompt) => {
   } catch (error) {
     console.error('OpenRouter API error:', error);
     throw new Error('Ошибка генерации текста');
+  }
+};
+
+
+// Генерация озвучки текста
+export const generateSpeech = async (text) => {
+  try {
+    // Используем Web Speech API или внешний сервис
+    const response = await axios.post('https://api.tts.service/synthesize', {
+      text: text,
+      voice: 'ru-RU',
+      speed: 1.0
+    });
+    
+    return {
+      data: {
+        audioUrl: response.data.audio_url
+      }
+    };
+  } catch (error) {
+    console.error('Speech generation error:', error);
+    throw new Error('Ошибка генерации озвучки');
   }
 };
