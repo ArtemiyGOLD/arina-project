@@ -364,3 +364,175 @@ export const generateSpeech = async (text) => {
         throw new Error("Ошибка генерации озвучки");
     }
 };
+
+
+// services/api.js - добавляем в конец файла
+
+// Cookie Service функции
+export class CookieService {
+  constructor() {
+    this.sessionId = this.generateSessionId();
+  }
+
+  generateSessionId() {
+    return 'session_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+  }
+
+  getBrowserInfo() {
+    return {
+      userAgent: navigator.userAgent,
+      language: navigator.language,
+      screenResolution: `${screen.width}x${screen.height}`,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
+  }
+
+  // Сохранение согласия пользователя
+  async saveConsent(userId, consentData) {
+    try {
+      const { data, error } = await supabase
+        .from('cookie_consents')
+        .insert([
+          {
+            user_id: userId,
+            consent_type: consentData.type,
+            accepted: consentData.accepted,
+            ip_address: await this.getIPAddress(),
+            user_agent: navigator.userAgent
+          }
+        ])
+        .select();
+
+      if (error) throw error;
+      
+      this.setConsentCookie(consentData);
+      return data;
+    } catch (error) {
+      console.error('Error saving consent:', error);
+      throw error;
+    }
+  }
+
+  async getIPAddress() {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip;
+    } catch (error) {
+      return 'unknown';
+    }
+  }
+
+  setConsentCookie(consentData) {
+    const consent = {
+      necessary: true,
+      analytics: consentData.analytics || false,
+      marketing: consentData.marketing || false,
+      timestamp: new Date().toISOString()
+    };
+
+    document.cookie = `cookie_consent=${JSON.stringify(consent)}; path=/; max-age=31536000; SameSite=Lax`;
+  }
+
+  // Сохранение сессии
+  async saveSession(userId) {
+    try {
+      const browserInfo = this.getBrowserInfo();
+      
+      const { data, error } = await supabase
+        .from('user_sessions')
+        .insert([
+          {
+            user_id: userId,
+            session_id: this.sessionId,
+            ip_address: await this.getIPAddress(),
+            user_agent: browserInfo.userAgent,
+            device_type: this.getDeviceType(),
+            browser: this.getBrowserName(),
+            screen_resolution: browserInfo.screenResolution,
+            language: browserInfo.language,
+            timezone: browserInfo.timezone,
+            referrer: document.referrer,
+            landing_page: window.location.href
+          }
+        ])
+        .select();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error saving session:', error);
+      throw error;
+    }
+  }
+
+  // Трекинг действий пользователя
+  async trackUserAction(userId, actionData) {
+    if (!this.hasConsentFor('analytics')) {
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('cookie_data')
+        .insert([
+          {
+            user_id: userId,
+            session_id: this.sessionId,
+            cookie_name: actionData.name,
+            cookie_value: actionData.value,
+            data_category: actionData.category || 'analytics',
+            page_visited: window.location.href,
+            action_performed: actionData.action,
+            additional_data: actionData.additionalData || {}
+          }
+        ])
+        .select();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error tracking action:', error);
+    }
+  }
+
+  // Проверка согласия
+  hasConsentFor(category) {
+    if (category === 'necessary') return true;
+    const consentCookie = this.getConsentCookie();
+    return consentCookie ? consentCookie[category] : false;
+  }
+
+  getConsentCookie() {
+    const name = 'cookie_consent=';
+    const cookies = document.cookie.split(';');
+    
+    for (let cookie of cookies) {
+      while (cookie.charAt(0) === ' ') {
+        cookie = cookie.substring(1);
+      }
+      if (cookie.indexOf(name) === 0) {
+        return JSON.parse(cookie.substring(name.length, cookie.length));
+      }
+    }
+    return null;
+  }
+
+  getDeviceType() {
+    const userAgent = navigator.userAgent;
+    if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(userAgent)) return 'tablet';
+    if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(userAgent)) return 'mobile';
+    return 'desktop';
+  }
+
+  getBrowserName() {
+    const userAgent = navigator.userAgent;
+    if (userAgent.indexOf("Chrome") > -1) return "Chrome";
+    if (userAgent.indexOf("Firefox") > -1) return "Firefox";
+    if (userAgent.indexOf("Safari") > -1) return "Safari";
+    return "Unknown";
+  }
+}
+
+// Создаем глобальный экземпляр
+export const cookieService = new CookieService();
