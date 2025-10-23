@@ -20,11 +20,22 @@ function App() {
     setLoading(false);
   }, []);
 
-  const handleLogin = (userData) => {
+  const handleLogin = (authData) => {
+    console.log('🔑 App: Login data received:', authData);
+    
+    // ИСПРАВЛЕНИЕ: authData содержит { token, user }, а не сам user
+    const userInfo = {
+      token: authData.token,
+      email: authData.user.email,
+      name: authData.user.name  // ← ВОТ ОНО!
+    };
+    
+    console.log('👤 App: Setting user to:', userInfo);
+    
     setIsAuthenticated(true);
-    setUser(userData);
-    localStorage.setItem('token', userData.token);
-    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userInfo);
+    localStorage.setItem('token', authData.token);
+    localStorage.setItem('user', JSON.stringify(userInfo));
   };
 
   const handleLogout = () => {

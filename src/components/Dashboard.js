@@ -40,7 +40,7 @@ const Dashboard = ({ user, onLogout }) => {
         <div className="header-content">
           <h1>🚀 Lector-App</h1>
           <div className="user-info">
-            <span>👋 {user.name}</span>
+            <span>👋 {user.name || user.email}</span>
             <button onClick={onLogout} className="logout-btn">Выйти</button>
           </div>
         </div>
