@@ -9,7 +9,6 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Проверяем, авторизован ли пользователь при загрузке
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
     
@@ -23,11 +22,10 @@ function App() {
   const handleLogin = (authData) => {
     console.log('🔑 App: Login data received:', authData);
     
-    // ИСПРАВЛЕНИЕ: authData содержит { token, user }, а не сам user
     const userInfo = {
       token: authData.token,
       email: authData.user.email,
-      name: authData.user.name  // ← ВОТ ОНО!
+      name: authData.user.name  
     };
     
     console.log('👤 App: Setting user to:', userInfo);

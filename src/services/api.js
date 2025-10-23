@@ -1,8 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import axios from "axios";
 
-// Supabase клиент
-// ⚠️ ИСПОЛЬЗУЙ ТВОИ ДАННЫЕ ИЗ SUPABASE!
 const supabaseUrl = "https://jcgrzqksghxzpfvpceby.supabase.co";
 const supabaseKey =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjZ3J6cWtzZ2h4enBmdnBjZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5NjIyNTksImV4cCI6MjA3NjUzODI1OX0.UwORyovNKX2wONxnz3zKXJC4AK2I4Xd-GyxuBCTNYA4";
@@ -19,7 +17,6 @@ export const registerUser = async (userData) => {
     try {
         console.log("Registering user:", userData);
 
-        // Проверяем есть ли пользователь
         const { data: existingUser, error: checkError } = await supabase
             .from("users")
             .select("id")
@@ -30,7 +27,6 @@ export const registerUser = async (userData) => {
             throw new Error("Пользователь с таким email уже существует");
         }
 
-        // Создаем пользователя
         const { data, error } = await supabase
             .from("users")
             .insert([
@@ -62,7 +58,7 @@ export const registerUser = async (userData) => {
                 user: {
                     id: data[0].id,
                     email: data[0].email,
-                    name: data[0].name, // ← ВОТ ТУТ ВОЗВРАЩАЕМ ИМЯ ИЗ БАЗЫ!
+                    name: data[0].name,
                 },
             },
         };
@@ -72,7 +68,6 @@ export const registerUser = async (userData) => {
     }
 };
 
-// Вход
 export const loginUser = async (userData) => {
     try {
         console.log("Logging in user:", userData.email);
@@ -101,7 +96,7 @@ export const loginUser = async (userData) => {
                 user: {
                     id: data.id,
                     email: data.email,
-                    name: data.name, // ← ВОЗВРАЩАЕМ ИМЯ ИЗ БАЗЫ!
+                    name: data.name,
                 },
             },
         };
@@ -134,7 +129,6 @@ export const saveLecture = async (lectureData, token) => {
             throw error;
         }
 
-        // Форматируем ответ
         const formattedData = {
             id: data[0].id,
             userId: data[0].user_id,
@@ -152,7 +146,6 @@ export const saveLecture = async (lectureData, token) => {
     }
 };
 
-// Получение лекций
 export const getUserLectures = async (token) => {
     try {
         const user = JSON.parse(atob(token));
@@ -169,7 +162,6 @@ export const getUserLectures = async (token) => {
             throw error;
         }
 
-        // Форматируем данные
         const formattedData = data.map((lecture) => ({
             id: lecture.id,
             userId: lecture.user_id,
@@ -187,7 +179,6 @@ export const getUserLectures = async (token) => {
     }
 };
 
-// Удаление лекции
 export const deleteLecture = async (lectureId, token) => {
     try {
         console.log("Deleting lecture:", lectureId);
@@ -205,7 +196,6 @@ export const deleteLecture = async (lectureId, token) => {
     }
 };
 
-// Анализ текста AI
 export const processTextWithAI = async (text) => {
     try {
         console.log("Processing text with AI, length:", text.length);
@@ -254,7 +244,6 @@ ${text}
     }
 };
 
-// Сохранение проекта
 export const saveProject = async (projectData, token) => {
     try {
         const user = JSON.parse(atob(token));
@@ -289,7 +278,6 @@ export const saveProject = async (projectData, token) => {
     }
 };
 
-// Получение проектов пользователя
 export const getUserProjects = async (token) => {
     try {
         const user = JSON.parse(atob(token));
@@ -354,7 +342,6 @@ export const generateTextFromPrompt = async (prompt) => {
     }
 };
 
-// Генерация озвучки текста
 export const generateSpeech = async (text) => {
     try {
         // Используем Web Speech API или внешний сервис

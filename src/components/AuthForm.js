@@ -32,13 +32,13 @@ const AuthForm = ({ onLogin }) => {
         result = await registerUser(formData);
       }
       
-      console.log('API Response:', result); // ← ДЛЯ ОТЛАДКИ
-      console.log('User data:', result.data.user); // ← ДЛЯ ОТЛАДКИ
+      console.log('API Response:', result);
+      console.log('User data:', result.data.user); 
       
-      onLogin(result.data); // ← ИСПОЛЬЗУЕМ result
+      onLogin(result.data); 
     } catch (err) {
       console.error('Auth error:', err);
-      setError(err.message || 'Произошла ошибка при авторизации'); // ← ИСПРАВИЛИ ОБРАБОТКУ ОШИБКИ
+      setError(err.message || 'Произошла ошибка при авторизации'); 
     } finally {
       setLoading(false);
     }
