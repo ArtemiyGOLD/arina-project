@@ -224,3 +224,97 @@ ${text}
     };
   }
 };
+
+// Сохранение проекта
+export const saveProject = async (projectData, token) => {
+  try {
+    const user = JSON.parse(atob(token));
+    
+    const { data, error } = await supabase
+      .from('projects')
+      .insert([{
+        user_id: user.id,
+        title: projectData.title,
+        prompt: projectData.prompt,
+        generated_text: projectData.generatedText,
+        created_at: new Date().toISOString(),
+      }])
+      .select();
+
+    if (error) throw error;
+    
+    return { 
+      data: {
+        id: data[0].id,
+        userId: data[0].user_id,
+        title: data[0].title,
+        prompt: data[0].prompt,
+        generatedText: data[0].generated_text,
+        createdAt: data[0].created_at
+      }
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Получение проектов пользователя
+export const getUserProjects = async (token) => {
+  try {
+    const user = JSON.parse(atob(token));
+    
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const formattedData = data.map(project => ({
+      id: project.id,
+      userId: project.user_id,
+      title: project.title,
+      prompt: project.prompt,
+      generatedText: project.generated_text,
+      createdAt: project.created_at
+    }));
+
+    return { data: formattedData };
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Генерация текста по промту
+// Генерация текста по промту
+export const generateTextFromPrompt = async (prompt) => {
+  const fullPrompt = `Сгенерируй качественный текст на основе следующего промта: "${prompt}". 
+  Текст должен быть структурированным, информативным и хорошо читаемым. А также без оформления по типу заголовков и тд.`;
+
+  try {
+    const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+      model: "deepseek/deepseek-chat",
+      messages: [{
+        role: "user",
+        content: fullPrompt
+      }],
+      max_tokens: 2000,
+      temperature: 0.7
+    }, {
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    return {
+      data: {
+        generatedText: response.data.choices[0].message.content
+      }
+    };
+  } catch (error) {
+    console.error('OpenRouter API error:', error);
+    throw new Error('Ошибка генерации текста');
+  }
+};
