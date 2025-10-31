@@ -333,34 +333,33 @@ export const processFile = async (file) => {
     try {
         console.log("Processing file:", file.name, file.type);
 
-        const formData = new FormData();
-        formData.append('file', file);
-
         // Для текстовых файлов
-        if (file.type === 'text/plain' || file.name.match(/\.txt$/i)) {
+        if (
+            file.type === "text/plain" ||
+            file.name.toLowerCase().endsWith(".txt")
+        ) {
             const text = await readTextFile(file);
             return await processTextWithAI(text);
         }
-        
-        // Для PDF и DOC файлов - используем специальный промт
-        else if (file.type === 'application/pdf' || file.name.match(/\.pdf$/i)) {
-            return await generateTextFromPrompt(
-                `Создай подробную лекцию на основе содержимого PDF файла "${file.name}". 
-                Структурируй информацию логически, выдели основные темы и ключевые моменты.`
+
+        // Для PDF и DOC файлов - сообщаем, что нужно загрузить текст
+        else if (
+            file.type === "application/pdf" ||
+            file.name.toLowerCase().endsWith(".pdf")
+        ) {
+            throw new Error(
+                "PDF файлы не поддерживаются для автоматической обработки. Пожалуйста, скопируйте текст из PDF и вставьте в поле ввода."
             );
-        }
-        else if (file.name.match(/\.docx?$/i)) {
-            return await generateTextFromPrompt(
-                `Создай подробную лекцию на основе содержимого Word документа "${file.name}". 
-                Проанализируй структуру документа и создай хорошо организованный учебный материал.`
+        } else if (file.name.toLowerCase().match(/\.docx?$/i)) {
+            throw new Error(
+                "Word документы не поддерживаются для автоматической обработки. Пожалуйста, скопируйте текст из документа и вставьте в поле ввода."
             );
-        }
-        else {
+        } else {
             throw new Error("Неподдерживаемый формат файла");
         }
     } catch (error) {
         console.error("File processing error:", error);
-        throw new Error("Ошибка обработки файла: " + error.message);
+        throw error;
     }
 };
 
@@ -370,16 +369,15 @@ const readTextFile = (file) => {
         const reader = new FileReader();
         reader.onload = (e) => resolve(e.target.result);
         reader.onerror = (e) => reject(new Error("Ошибка чтения файла"));
-        reader.readAsText(file, 'UTF-8');
+        reader.readAsText(file, "UTF-8");
     });
 };
-
 // Обновим функцию генерации текста для лучшей обработки файлов
 export const generateTextFromPrompt = async (prompt) => {
     let fullPrompt;
 
     // Определяем, является ли промт запросом на обработку файла
-    if (prompt.includes('PDF файла') || prompt.includes('Word документа')) {
+    if (prompt.includes("PDF файла") || prompt.includes("Word документа")) {
         fullPrompt = prompt;
     } else {
         fullPrompt = `Составь краткую лекцию по данному запросу: "${prompt}". 

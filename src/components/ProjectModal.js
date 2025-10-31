@@ -1,9 +1,5 @@
 import React, { useState, useRef } from "react";
-import {
-    generateTextFromPrompt,
-    saveProject,
-    processTextWithAI,
-} from "../services/api.js";
+import { generateTextFromPrompt, saveProject, processTextWithAI } from "../services/api.js";
 
 const ProjectModal = ({ isOpen, onClose, onProjectCreated, token }) => {
     const [formData, setFormData] = useState({
@@ -12,10 +8,12 @@ const ProjectModal = ({ isOpen, onClose, onProjectCreated, token }) => {
     });
     const [generatedText, setGeneratedText] = useState("");
     const [loading, setLoading] = useState(false);
+    const [saveLoading, setSaveLoading] = useState(false);
     const [step, setStep] = useState(1);
     const [selectedFile, setSelectedFile] = useState(null);
     const [fileContent, setFileContent] = useState("");
     const [uploadMethod, setUploadMethod] = useState("text");
+    const [error, setError] = useState("");
     const fileInputRef = useRef(null);
 
     const handleFileSelect = (event) => {
@@ -23,125 +21,101 @@ const ProjectModal = ({ isOpen, onClose, onProjectCreated, token }) => {
         if (!file) return;
 
         console.log("Selected file:", file.name, file.type, file.size);
+        setError("");
 
         // Проверка типа файла
-        const allowedTypes = [
-            "text/plain",
-            "application/pdf",
-            "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        ];
-
-        const fileExtension = file.name.split(".").pop().toLowerCase();
-        const isAllowedType =
-            allowedTypes.includes(file.type) ||
-            ["txt", "pdf", "doc", "docx"].includes(fileExtension);
-
-        if (!isAllowedType) {
-            alert("Пожалуйста, выберите файл в формате TXT, PDF или DOC/DOCX");
+        const allowedExtensions = ['txt', 'pdf', 'doc', 'docx'];
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+        
+        if (!allowedExtensions.includes(fileExtension)) {
+            setError("Пожалуйста, выберите файл в формате TXT, PDF или DOC/DOCX");
             return;
         }
 
         // Проверка размера файла (максимум 10MB)
         if (file.size > 10 * 1024 * 1024) {
-            alert("Файл слишком большой. Максимальный размер - 10MB");
+            setError("Файл слишком большой. Максимальный размер - 10MB");
             return;
         }
 
         setSelectedFile(file);
-        readFileContent(file);
+        
+        // Для разных типов файлов разная логика
+        if (fileExtension === 'txt') {
+            readTextFileContent(file);
+        } else {
+            // Для PDF и DOC файлов просто показываем информацию о файле
+            setFileContent(`Файл ${fileExtension.toUpperCase()}: ${file.name}\n\nЭтот формат файла не поддерживает предпросмотр текста. Вы можете обработать файл, но текст будет сгенерирован на основе названия файла.`);
+            setFormData(prev => ({
+                ...prev,
+                prompt: `Создай лекцию на тему связанную с файлом: ${file.name}`
+            }));
+        }
     };
 
-    const readFileContent = (file) => {
+    const readTextFileContent = (file) => {
         const reader = new FileReader();
-
+        
         reader.onload = (e) => {
-            if (
-                file.type === "application/pdf" ||
-                file.name.toLowerCase().endsWith(".pdf")
-            ) {
-                // Для PDF файлов просто показываем имя файла
-                setFileContent(`Файл PDF: ${file.name}`);
-                setFormData((prev) => ({
-                    ...prev,
-                    prompt: `Обработай содержимое PDF файла: ${file.name}`,
-                }));
-            } else {
-                // Для текстовых файлов читаем содержимое
-                const content = e.target.result;
-                setFileContent(
-                    content.substring(0, 500) +
-                        (content.length > 500 ? "..." : "")
-                );
-                setFormData((prev) => ({
-                    ...prev,
-                    prompt: content.substring(0, 2000), // Ограничиваем длину промта
-                }));
-            }
+            const content = e.target.result;
+            setFileContent(content.substring(0, 1000) + (content.length > 1000 ? "\n\n..." : ""));
+            setFormData(prev => ({
+                ...prev,
+                prompt: content.substring(0, 3000) // Ограничиваем длину промта
+            }));
         };
 
         reader.onerror = () => {
-            alert("Ошибка при чтении файла");
+            setError("Ошибка при чтении файла");
             setSelectedFile(null);
             setFileContent("");
         };
 
-        if (
-            file.type === "application/pdf" ||
-            file.name.toLowerCase().endsWith(".pdf")
-        ) {
-            // Для PDF просто используем имя файла
-            setFileContent(`Файл PDF: ${file.name}`);
-            setFormData((prev) => ({
-                ...prev,
-                prompt: `Обработай содержимое PDF файла: ${file.name}`,
-            }));
-        } else {
-            reader.readAsText(file, "UTF-8");
-        }
+        reader.readAsText(file, 'UTF-8');
     };
 
     const handleGenerate = async () => {
         if (uploadMethod === "text" && !formData.prompt.trim()) {
-            alert("Введите промт или загрузите файл");
+            setError("Введите промт для генерации");
             return;
         }
 
         if (uploadMethod === "file" && !selectedFile) {
-            alert("Пожалуйста, выберите файл");
+            setError("Пожалуйста, выберите файл");
             return;
         }
 
         setLoading(true);
+        setError("");
+
         try {
             let result;
-
+            
             if (uploadMethod === "file" && selectedFile) {
-                // Для файлов используем существующую функцию обработки текста
-                if (
-                    selectedFile.type === "text/plain" ||
-                    selectedFile.name.toLowerCase().endsWith(".txt")
-                ) {
-                    // Для TXT файлов читаем содержимое и обрабатываем
+                const fileExtension = selectedFile.name.split('.').pop().toLowerCase();
+                
+                if (fileExtension === 'txt') {
+                    // Для TXT файлов обрабатываем содержимое
                     const text = await readFileAsText(selectedFile);
                     result = await processTextWithAI(text);
                 } else {
-                    // Для PDF и DOC - используем промт с именем файла
+                    // Для PDF и DOC - генерируем на основе названия файла
                     result = await generateTextFromPrompt(
-                        `Создай подробную лекцию на основе содержимого файла "${selectedFile.name}". 
-                        Структурируй информацию логически, выдели основные темы и ключевые моменты.`
+                        `Создай подробную образовательную лекцию на тему, связанную с файлом "${selectedFile.name}". 
+                        Лекция должна быть структурированной, информативной и полезной для обучения.
+                        Раскрой основные концепции, предоставьте примеры и объясните ключевые моменты.`
                     );
                 }
             } else {
                 // Генерируем из текстового промта
                 result = await generateTextFromPrompt(formData.prompt);
             }
-
+            
             setGeneratedText(result.data.generatedText || result.data.summary);
             setStep(2);
         } catch (error) {
             console.error("Generation error:", error);
-            alert("Ошибка генерации: " + error.message);
+            setError("Ошибка генерации: " + error.message);
         } finally {
             setLoading(false);
         }
@@ -153,48 +127,48 @@ const ProjectModal = ({ isOpen, onClose, onProjectCreated, token }) => {
             const reader = new FileReader();
             reader.onload = (e) => resolve(e.target.result);
             reader.onerror = (e) => reject(new Error("Ошибка чтения файла"));
-            reader.readAsText(file, "UTF-8");
+            reader.readAsText(file, 'UTF-8');
         });
     };
 
     const handleSave = async () => {
-        console.log("Save button clicked");
-        console.log("Form data:", formData);
-        console.log("Generated text:", generatedText);
-        console.log("Selected file:", selectedFile);
-        console.log("Token:", token);
-
-        if (!formData.title.trim() || !generatedText) {
-            console.log("Validation failed - missing title or generated text");
-            alert("Заполните название проекта");
+        if (!formData.title.trim()) {
+            setError("Введите название проекта");
             return;
         }
 
-        try {
-            console.log("Starting save process...");
+        if (!generatedText) {
+            setError("Нет сгенерированного текста для сохранения");
+            return;
+        }
 
+        setSaveLoading(true);
+
+        try {
             const projectData = {
-                title: formData.title,
-                prompt:
-                    uploadMethod === "file"
-                        ? `Файл: ${selectedFile?.name}`
-                        : formData.prompt,
+                title: formData.title.trim(),
+                prompt: uploadMethod === "file" ? 
+                    `Файл: ${selectedFile?.name || "неизвестный файл"}` : 
+                    formData.prompt.trim(),
                 generatedText: generatedText,
                 fileType: selectedFile?.type || null,
                 fileName: selectedFile?.name || null,
                 fileSize: selectedFile?.size || null,
             };
 
-            console.log("Project data to save:", projectData);
+            await saveProject(projectData, token);
 
-            const result = await saveProject(projectData, token);
-            console.log("Save successful:", result);
-
-            onProjectCreated();
+            if (onProjectCreated) {
+                onProjectCreated();
+            }
+            
             handleClose();
+            
         } catch (error) {
             console.error("Save error:", error);
-            alert("Ошибка сохранения: " + error.message);
+            setError("Ошибка сохранения: " + (error.message || "Неизвестная ошибка"));
+        } finally {
+            setSaveLoading(false);
         }
     };
 
@@ -205,21 +179,25 @@ const ProjectModal = ({ isOpen, onClose, onProjectCreated, token }) => {
         setFileContent("");
         setUploadMethod("text");
         setStep(1);
+        setError("");
+        setSaveLoading(false);
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }
-        onClose();
+        if (onClose) {
+            onClose();
+        }
     };
 
     const removeFile = () => {
         setSelectedFile(null);
         setFileContent("");
+        setError("");
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }
     };
 
-    // Функция для клика по области загрузки
     const handleUploadAreaClick = () => {
         if (fileInputRef.current) {
             fileInputRef.current.click();
@@ -238,6 +216,19 @@ const ProjectModal = ({ isOpen, onClose, onProjectCreated, token }) => {
                     </button>
                 </div>
 
+                {error && (
+                    <div className="error-message" style={{
+                        background: "#f8d7da",
+                        color: "#721c24",
+                        padding: "12px",
+                        borderRadius: "6px",
+                        marginBottom: "15px",
+                        border: "1px solid #f5c6cb"
+                    }}>
+                        {error}
+                    </div>
+                )}
+
                 {step === 1 && (
                     <div className="modal-body">
                         <div className="form-group">
@@ -255,25 +246,26 @@ const ProjectModal = ({ isOpen, onClose, onProjectCreated, token }) => {
                             />
                         </div>
 
-                        {/* Переключатель метода ввода */}
                         <div className="upload-method-selector">
                             <label>Способ ввода:</label>
                             <div className="method-buttons">
                                 <button
                                     type="button"
-                                    className={`method-btn ${
-                                        uploadMethod === "text" ? "active" : ""
-                                    }`}
-                                    onClick={() => setUploadMethod("text")}
+                                    className={`method-btn ${uploadMethod === "text" ? "active" : ""}`}
+                                    onClick={() => {
+                                        setUploadMethod("text");
+                                        setError("");
+                                    }}
                                 >
                                     📝 Текст
                                 </button>
                                 <button
                                     type="button"
-                                    className={`method-btn ${
-                                        uploadMethod === "file" ? "active" : ""
-                                    }`}
-                                    onClick={() => setUploadMethod("file")}
+                                    className={`method-btn ${uploadMethod === "file" ? "active" : ""}`}
+                                    onClick={() => {
+                                        setUploadMethod("file");
+                                        setError("");
+                                    }}
                                 >
                                     📎 Файл
                                 </button>
@@ -294,49 +286,46 @@ const ProjectModal = ({ isOpen, onClose, onProjectCreated, token }) => {
                                     placeholder="Опишите, какой текст нужно сгенерировать..."
                                     rows="6"
                                 />
+                                <div style={{ fontSize: "12px", color: "#666", marginTop: "5px" }}>
+                                    Например: "Объясни основы квантовой физики" или "Расскажи о Второй мировой войне"
+                                </div>
                             </div>
                         ) : (
                             <div className="file-upload-section">
                                 <label>Загрузите файл:</label>
-
-                                {/* Скрытый input file */}
+                                
                                 <input
                                     ref={fileInputRef}
                                     type="file"
                                     accept=".txt,.pdf,.doc,.docx"
                                     onChange={handleFileSelect}
-                                    style={{ display: "none" }}
+                                    style={{ display: 'none' }}
                                 />
-
-                                {/* Область для загрузки файла */}
-                                <div
+                                
+                                <div 
                                     className="file-upload-area"
                                     onClick={handleUploadAreaClick}
-                                    style={{ cursor: "pointer" }}
+                                    style={{ cursor: 'pointer' }}
                                 >
                                     {selectedFile ? (
                                         <div className="file-info">
-                                            <div className="file-name">
-                                                📄 {selectedFile.name}
-                                            </div>
+                                            <div className="file-name">📄 {selectedFile.name}</div>
                                             <div className="file-size">
-                                                {(
-                                                    selectedFile.size / 1024
-                                                ).toFixed(2)}{" "}
-                                                KB
+                                                {(selectedFile.size / 1024).toFixed(2)} KB
+                                            </div>
+                                            <div className="file-type">
+                                                Тип: {selectedFile.name.split('.').pop().toUpperCase()}
                                             </div>
                                             {fileContent && (
                                                 <div className="file-preview">
-                                                    <strong>
-                                                        Предпросмотр:
-                                                    </strong>
-                                                    <p>{fileContent}</p>
+                                                    <strong>Информация:</strong>
+                                                    <p style={{ whiteSpace: 'pre-wrap' }}>{fileContent}</p>
                                                 </div>
                                             )}
                                             <button
                                                 type="button"
                                                 onClick={(e) => {
-                                                    e.stopPropagation(); // Предотвращаем открытие диалога
+                                                    e.stopPropagation();
                                                     removeFile();
                                                 }}
                                                 className="remove-file-btn"
@@ -346,15 +335,11 @@ const ProjectModal = ({ isOpen, onClose, onProjectCreated, token }) => {
                                         </div>
                                     ) : (
                                         <div className="upload-prompt">
-                                            <div className="upload-icon">
-                                                📎
-                                            </div>
-                                            <p>
-                                                Нажмите здесь чтобы выбрать файл
-                                            </p>
+                                            <div className="upload-icon">📎</div>
+                                            <p>Нажмите здесь чтобы выбрать файл</p>
                                             <small>
-                                                Поддерживаемые форматы: TXT,
-                                                PDF, DOC, DOCX (до 10MB)
+                                                Поддерживаемые форматы: TXT, PDF, DOC, DOCX (до 10MB)<br/>
+                                                TXT файлы будут обработаны полностью, PDF/DOC - по названию файла
                                             </small>
                                         </div>
                                     )}
@@ -366,25 +351,24 @@ const ProjectModal = ({ isOpen, onClose, onProjectCreated, token }) => {
                             <button
                                 onClick={handleClose}
                                 className="btn-secondary"
+                                disabled={loading}
                             >
                                 Отмена
                             </button>
                             <button
                                 onClick={handleGenerate}
                                 disabled={
-                                    (uploadMethod === "text" &&
-                                        !formData.prompt.trim()) ||
-                                    (uploadMethod === "file" &&
-                                        !selectedFile) ||
+                                    (uploadMethod === "text" && !formData.prompt.trim()) ||
+                                    (uploadMethod === "file" && !selectedFile) ||
                                     loading
                                 }
                                 className="btn-primary"
                             >
                                 {loading
-                                    ? "Генерируем..."
-                                    : uploadMethod === "file"
-                                    ? "Обработать файл"
-                                    : "Сгенерировать текст"}
+                                    ? "🔄 Генерируем..."
+                                    : uploadMethod === "file" 
+                                        ? "📄 Обработать файл" 
+                                        : "🤖 Сгенерировать текст"}
                             </button>
                         </div>
                     </div>
@@ -393,7 +377,7 @@ const ProjectModal = ({ isOpen, onClose, onProjectCreated, token }) => {
                 {step === 2 && (
                     <div className="modal-body">
                         <div className="preview-section">
-                            <h3>Сгенерированный текст:</h3>
+                            <h3>📝 Сгенерированный текст:</h3>
                             <div className="generated-text">
                                 {generatedText}
                             </div>
@@ -401,16 +385,21 @@ const ProjectModal = ({ isOpen, onClose, onProjectCreated, token }) => {
 
                         <div className="modal-actions">
                             <button
-                                onClick={() => setStep(1)}
+                                onClick={() => {
+                                    setStep(1);
+                                    setError("");
+                                }}
                                 className="btn-secondary"
+                                disabled={saveLoading}
                             >
-                                ← Назад
+                                ← Назад к редактированию
                             </button>
                             <button
                                 onClick={handleSave}
                                 className="btn-primary"
+                                disabled={saveLoading || !generatedText}
                             >
-                                ✅ Сохранить проект
+                                {saveLoading ? "⏳ Сохранение..." : "✅ Сохранить проект"}
                             </button>
                         </div>
                     </div>
