@@ -1,9 +1,7 @@
-// App.js - добавляем CookieConsent
+// App.js - обновленная версия
 import React, { useState, useEffect } from 'react';
 import AuthForm from './components/AuthForm.js';
 import Dashboard from './components/Dashboard.js';
-import CookieConsent from './components/CookieConsent.js';
-import { cookieService } from './services/api.js';
 import './styles/App.css';
 
 function App() {
@@ -19,11 +17,6 @@ function App() {
       setIsAuthenticated(true);
       const userObj = JSON.parse(userData);
       setUser(userObj);
-      
-      // Сохраняем сессию при загрузке если пользователь авторизован
-      if (userObj.id && cookieService.hasConsentFor('analytics')) {
-        cookieService.saveSession(userObj.id);
-      }
     }
     setLoading(false);
   }, []);
@@ -40,11 +33,6 @@ function App() {
     setUser(userInfo);
     localStorage.setItem('token', authData.token);
     localStorage.setItem('user', JSON.stringify(userInfo));
-
-    // Сохраняем сессию после логина
-    if (cookieService.hasConsentFor('analytics')) {
-      cookieService.saveSession(userInfo.id);
-    }
   };
 
   const handleLogout = () => {
@@ -61,15 +49,9 @@ function App() {
   return (
     <div className="App">
       {!isAuthenticated ? (
-        <>
-          <AuthForm onLogin={handleLogin} />
-          <CookieConsent userId={null} />
-        </>
+        <AuthForm onLogin={handleLogin} />
       ) : (
-        <>
-          <Dashboard user={user} onLogout={handleLogout} />
-          <CookieConsent userId={user.id} />
-        </>
+        <Dashboard user={user} onLogout={handleLogout} />
       )}
     </div>
   );

@@ -595,3 +595,360 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary-600);
 }
+/* Стили для загрузки файлов */
+.upload-method-selector {
+    margin-bottom: 20px;
+}
+
+.upload-method-selector label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.method-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.method-btn {
+    padding: 10px 20px;
+    border: 2px solid #e0e0e0;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.method-btn.active {
+    border-color: #007bff;
+    background: #007bff;
+    color: white;
+}
+
+.method-btn:hover:not(.active) {
+    border-color: #007bff;
+}
+
+.file-upload-section {
+    margin-bottom: 20px;
+}
+
+.file-upload-area {
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    transition: border-color 0.3s;
+}
+
+.file-upload-area:hover {
+    border-color: #007bff;
+}
+
+.file-upload-area.dragover {
+    border-color: #007bff;
+    background: #f8f9fa;
+}
+
+.file-input {
+    display: none;
+}
+
+.upload-placeholder {
+    cursor: pointer;
+}
+
+.upload-prompt {
+    color: #666;
+}
+
+.upload-icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.file-info {
+    text-align: left;
+}
+
+.file-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.file-size {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+}
+
+.file-preview {
+    margin-top: 10px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 5px;
+    border-left: 3px solid #007bff;
+}
+
+.file-preview p {
+    margin: 5px 0 0 0;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.remove-file-btn {
+    margin-top: 10px;
+    padding: 5px 10px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.remove-file-btn:hover {
+    background: #c82333;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .method-buttons {
+        flex-direction: column;
+    }
+}
+
+/* Стили для модального окна */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 15px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: #333;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    padding: 5px;
+}
+
+.close-btn:hover {
+    color: #333;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+    box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+/* Стили для загрузки файлов */
+.file-upload-area {
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    padding: 30px 20px;
+    text-align: center;
+    transition: all 0.3s;
+    background: #fafafa;
+}
+
+.file-upload-area:hover {
+    border-color: #007bff;
+    background: #f0f8ff;
+}
+
+.upload-prompt {
+    color: #666;
+}
+
+.upload-icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    opacity: 0.7;
+}
+
+.file-info {
+    text-align: left;
+}
+
+.file-name {
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.file-size {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+}
+
+.file-preview {
+    margin-top: 15px;
+    padding: 15px;
+    background: white;
+    border-radius: 5px;
+    border-left: 3px solid #007bff;
+}
+
+.file-preview p {
+    margin: 8px 0 0 0;
+    font-size: 0.9rem;
+    color: #555;
+    line-height: 1.4;
+}
+
+.remove-file-btn {
+    margin-top: 15px;
+    padding: 8px 16px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.remove-file-btn:hover {
+    background: #c82333;
+}
+
+/* Кнопки действий */
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.3s;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #0056b3;
+}
+
+.btn-primary:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.3s;
+}
+
+.btn-secondary:hover {
+    background: #545b62;
+}
+
+/* Переключатель методов */
+.method-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.method-btn {
+    padding: 12px 20px;
+    border: 2px solid #e0e0e0;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 14px;
+}
+
+.method-btn.active {
+    border-color: #007bff;
+    background: #007bff;
+    color: white;
+}
+
+.method-btn:hover:not(.active) {
+    border-color: #007bff;
+}
+
+/* Предпросмотр текста */
+.generated-text {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 4px solid #28a745;
+    line-height: 1.6;
+    color: #495057;
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
+}
