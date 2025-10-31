@@ -10,7 +10,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // OpenRouter API
 const API_KEY =
-    "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";
+    "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";
 
 // Регистрация
 export const registerUser = async (userData) => {
