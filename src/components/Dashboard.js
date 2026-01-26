@@ -1,72 +1,91 @@
-import React, { useState, useEffect } from 'react';
-import ProjectList from './ProjectList.js';
-import ProjectModal from './ProjectModal.js';
-import ProjectView from './ProjectView.js';
-import { getUserProjects } from '../services/api.js';
+import React, { useState } from 'react';
+import TextProcessor from './TextProcessor.js';
+import LectureHistory from './LectureHistory.js';
 
 const Dashboard = ({ user, onLogout }) => {
-  const [projects, setProjects] = useState([]);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedProject, setSelectedProject] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [showHistory, setShowHistory] = useState(false);
+  const [selectedLecture, setSelectedLecture] = useState(null);
 
-  useEffect(() => {
-    loadProjects();
-  }, []);
-
-  const loadProjects = async () => {
-    try {
-      const response = await getUserProjects(user.token);
-      setProjects(response.data);
-    } catch (error) {
-      console.error('Error loading projects:', error);
-    } finally {
-      setLoading(false);
-    }
+  const handleSelectLecture = (lecture) => {
+    setSelectedLecture(lecture);
+    setShowHistory(false);
   };
 
-  const handleProjectCreated = () => {
-    loadProjects();
-    setShowModal(false);
+  const handleNewAnalysis = () => {
+    setSelectedLecture(null);
   };
-
-  if (loading) {
-    return <div className="loading">Загрузка проектов...</div>;
-  }
 
   return (
     <div className="dashboard">
       <header className="dashboard-header">
         <div className="header-content">
-          <h1>🚀 Lector-App</h1>
-          <div className="user-info">
-            <span>👋 {user.name || user.email}</span>
-            <button onClick={onLogout} className="logout-btn">Выйти</button>
+          <div className="header-left">
+            <h1>🤖 AI Text Analyzer</h1>
+            <span className="user-greeting">
+              👋 Добро пожаловать, {user?.name || user?.email}!
+            </span>
+          </div>
+          
+          <div className="header-actions">
+            <button 
+              onClick={() => setShowHistory(true)}
+              className="history-btn"
+            >
+              📚 История
+            </button>
+            {selectedLecture && (
+              <button 
+                onClick={handleNewAnalysis}
+                className="new-analysis-btn"
+              >
+                ➕ Новый анализ
+              </button>
+            )}
+            <button onClick={onLogout} className="logout-btn">
+              🚪 Выйти
+            </button>
           </div>
         </div>
       </header>
-
+      
       <main className="dashboard-main">
-        {selectedProject ? (
-          <ProjectView 
-            project={selectedProject} 
-            onBack={() => setSelectedProject(null)} 
-          />
+        {selectedLecture ? (
+          <div className="lecture-view">
+            <div className="lecture-view-header">
+              <h2>{selectedLecture.title}</h2>
+              <span className="lecture-view-date">
+                Анализ от: {new Date(selectedLecture.createdAt).toLocaleString('ru-RU')}
+              </span>
+            </div>
+            
+            <div className="lecture-sections">
+              <div className="lecture-section">
+                <h3>📄 Исходный текст:</h3>
+                <div className="original-text">
+                  {selectedLecture.originalText}
+                </div>
+              </div>
+              
+              <div className="lecture-section">
+                <h3>🎯 Основные мысли:</h3>
+                <div className="summary-text">
+                  {selectedLecture.summary}
+                </div>
+              </div>
+            </div>
+          </div>
         ) : (
-          <ProjectList
-            projects={projects}
-            onProjectSelect={setSelectedProject}
-            onNewProject={() => setShowModal(true)}
-          />
+          <TextProcessor token={user.token} />
         )}
       </main>
 
-      <ProjectModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        onProjectCreated={handleProjectCreated}
-        token={user.token}
-      />
+      {showHistory && (
+        <LectureHistory 
+          token={user.token}
+          onSelectLecture={handleSelectLecture}
+          onClose={() => setShowHistory(false)}
+        />
+      )}
     </div>
   );
 };

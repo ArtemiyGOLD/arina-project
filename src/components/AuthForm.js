@@ -16,6 +16,7 @@ const AuthForm = ({ onLogin }) => {
       ...formData,
       [e.target.name]: e.target.value
     });
+    // Очищаем ошибку при вводе
     if (error) setError('');
   };
 
@@ -25,20 +26,16 @@ const AuthForm = ({ onLogin }) => {
     setError('');
 
     try {
-      let result; // ← ИЗМЕНИЛИ НА result
+      let response;
       if (isLogin) {
-        result = await loginUser(formData);
+        response = await loginUser(formData);
       } else {
-        result = await registerUser(formData);
+        response = await registerUser(formData);
       }
       
-      console.log('API Response:', result);
-      console.log('User data:', result.data.user); 
-      
-      onLogin(result.data); 
+      onLogin(response.data);
     } catch (err) {
-      console.error('Auth error:', err);
-      setError(err.message || 'Произошла ошибка при авторизации'); 
+      setError(err.response?.data?.message || 'Произошла ошибка при авторизации');
     } finally {
       setLoading(false);
     }

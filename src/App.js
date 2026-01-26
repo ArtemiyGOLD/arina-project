@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AuthForm from './components/AuthForm.js';
 import Dashboard from './components/Dashboard.js';
@@ -10,29 +9,22 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Проверяем, авторизован ли пользователь при загрузке
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
     
     if (token && userData) {
       setIsAuthenticated(true);
-      const userObj = JSON.parse(userData);
-      setUser(userObj);
+      setUser(JSON.parse(userData));
     }
     setLoading(false);
   }, []);
 
-  const handleLogin = (authData) => {
-    const userInfo = {
-      id: authData.user.id,
-      token: authData.token,
-      email: authData.user.email,
-      name: authData.user.name
-    };
-    
+  const handleLogin = (userData) => {
     setIsAuthenticated(true);
-    setUser(userInfo);
-    localStorage.setItem('token', authData.token);
-    localStorage.setItem('user', JSON.stringify(userInfo));
+    setUser(userData);
+    localStorage.setItem('token', userData.token);
+    localStorage.setItem('user', JSON.stringify(userData));
   };
 
   const handleLogout = () => {
