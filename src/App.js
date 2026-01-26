@@ -1,4 +1,4 @@
-// App.js - обновленная версия
+
 import React, { useState, useEffect } from 'react';
 import AuthForm from './components/AuthForm.js';
 import Dashboard from './components/Dashboard.js';
